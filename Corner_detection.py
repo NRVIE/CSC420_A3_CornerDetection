@@ -41,6 +41,7 @@ def create_grid_cells(img, length, visual: bool = True):
 
     angle_arr = np.degrees(np.arctan(gy / gx))
     mag_arr = np.sqrt(gx ** 2 + gy ** 2)
+    # TODO: set threshold for mag
     for x in range(0, grid_size[0]):
         for y in range(0, grid_size[1]):
             for row in range(0 + (length * x), length * (x + 1)):
@@ -52,10 +53,8 @@ def create_grid_cells(img, length, visual: bool = True):
                     if not(-15 <= curr_angle < 165):
                         if curr_angle > 0:
                             curr_angle = curr_angle - 180
-                            neg = True
                         else:
                             curr_angle = curr_angle + 180
-                            neg = True
 
                     if -15 <= curr_angle < 15:
                         orientation_bin = 0
@@ -70,11 +69,31 @@ def create_grid_cells(img, length, visual: bool = True):
                     elif 135 <= curr_angle < 165:
                         orientation_bin = 5
 
+                    # Approach one
                     grid_arr[x][y][orientation_bin] += mag_arr[row][col]
+                    # Approach two
+                    # grid_arr[x][y][orientation_bin] += 1
     # Normalizing the grid_arr
-    l2_norm = np.linalg.norm(grid_arr, 2, axis=2)
-    l2_norm = l2_norm.reshape((grid_size[0], grid_size[1], 1)).repeat(6, axis=2)
-    grid_arr = grid_arr / l2_norm  # divide l2_norm element-wise
+    new_grid_arr = np.zeros((grid_size[0] - 1,  grid_size[1] - 1, 24))
+    for x in range(0, grid_size[0] - 1):
+        for y in range(0, grid_size[1] - 1):
+            cancat_tup = (grid_arr[x][y], grid_arr[x][y + 1], grid_arr[x + 1][y], grid_arr[x + 1][y + 1])
+            cancat_arr = np.concatenate(cancat_tup)
+            l2_norm = math.sqrt((cancat_arr**2).sum() + 0.001)
+            # l2_norm = np.linalg.norm(cancat_arr, 2)
+            new_grid_arr[x][y] = cancat_arr / l2_norm
+            # for curr_idx in cancat_tup:
+            #     normalized_idx = curr_idx / l2_norm
+            #     new_grid_arr[x][y][0] += normalized_idx[0]
+            #     new_grid_arr[x][y][1] += normalized_idx[1]
+            #     new_grid_arr[x][y][2] += normalized_idx[2]
+            #     new_grid_arr[x][y][3] += normalized_idx[3]
+            #     new_grid_arr[x][y][4] += normalized_idx[4]
+            #     new_grid_arr[x][y][5] += normalized_idx[5]
+
+    # l2_norm = np.linalg.norm(grid_arr, 2, axis=2)
+    # l2_norm = l2_norm.reshape((grid_size[0], grid_size[1], 1)).repeat(6, axis=2)
+    # grid_arr = grid_arr / l2_norm  # divide l2_norm element-wise
 
     # Plot the HOG graph if visual is true
     if visual:
@@ -82,45 +101,94 @@ def create_grid_cells(img, length, visual: bool = True):
         graph_y = []
         graph_u = []
         graph_v = []
-        for x in range(0, grid_size[0]):
-            for y in range(0, grid_size[1]):
+        for x in range(0, grid_size[0] - 2):
+            for y in range(0, grid_size[1] - 2):
                 graph_x += [y + 0.5] * 6
-                graph_y += [grid_size[0] - 1.5 - x] * 6
-                for i in range(0, 6):
+                graph_x += [y + 1.5] * 6
+                graph_x += [y + 0.5] * 6
+                graph_x += [y + 1.5] * 6
+                graph_y += [grid_size[0] - 1 - 1.5 - x] * 6
+                graph_y += [grid_size[0] - 1 - 1.5 - x] * 6
+                graph_y += [grid_size[0] - 1 - 1.5 - (x + 1)] * 6
+                graph_y += [grid_size[0] - 1 - 1.5 - (x + 1)] * 6
+                for i in range(0, 4):
                     if i == 0:
-                        graph_u += [grid_arr[x][y][i] * 1]
-                        graph_v += [grid_arr[x][y][i] * 0]
+                        x_p = x
+                        y_p = y
                     elif i == 1:
-                        graph_u += [grid_arr[x][y][i] * math.sqrt(3) / 2]
-                        graph_v += [grid_arr[x][y][i] * 1 / 2]
+                        x_p = x
+                        y_p = y + 1
                     elif i == 2:
-                        graph_u += [grid_arr[x][y][i] * 1 / 2]
-                        graph_v += [grid_arr[x][y][i] * math.sqrt(3) / 2]
+                        x_p = x + 1
+                        y_p = y
                     elif i == 3:
-                        graph_u += [grid_arr[x][y][i] * 0]
-                        graph_v += [grid_arr[x][y][i] * 1]
-                    elif i == 4:
-                        graph_u += [grid_arr[x][y][i] * -1 / 2]
-                        graph_v += [grid_arr[x][y][i] * math.sqrt(3) / 2]
-                    elif i == 5:
-                        graph_u += [grid_arr[x][y][i] * -math.sqrt(3) / 2]
-                        graph_v += [grid_arr[x][y][i] * 1 / 2]
+                        x_p = x + 1
+                        y_p = y + 1
+                    graph_u += [new_grid_arr[x_p][y_p][i * 6] * 1]
+                    graph_v += [new_grid_arr[x_p][y_p][i * 6] * 0]
+                    graph_u += [new_grid_arr[x_p][y_p][i * 6 + 1] * math.sqrt(3) / 2]
+                    graph_v += [new_grid_arr[x_p][y_p][i * 6 + 1] * 1 / 2]
+                    graph_u += [new_grid_arr[x_p][y_p][i * 6 + 2] * 1 / 2]
+                    graph_v += [new_grid_arr[x_p][y_p][i * 6 + 2] * math.sqrt(3) / 2]
+                    graph_u += [new_grid_arr[x_p][y_p][i * 6 + 3] * 0]
+                    graph_v += [new_grid_arr[x_p][y_p][i * 6 + 3] * 1]
+                    graph_u += [new_grid_arr[x_p][y_p][i * 6 + 4] * -1 / 2]
+                    graph_v += [new_grid_arr[x_p][y_p][i * 6 + 4] * math.sqrt(3) / 2]
+                    graph_u += [new_grid_arr[x_p][y_p][i * 6 + 5] * -math.sqrt(3) / 2]
+                    graph_v += [new_grid_arr[x_p][y_p][i * 6 + 5] * 1 / 2]
         fig, ax = plt.subplots()
         ax.quiver(graph_x, graph_y,
-                  graph_u,
-                  graph_v,
+                  graph_u, graph_v,
                   angles='uv', scale_units='xy', scale=1., headaxislength=0)
-        ax.set_xlim([0, grid_size[1]])
-        ax.set_ylim([0, grid_size[0]])
+        ax.set_xlim([0, grid_size[1] - 1])
+        ax.set_ylim([0, grid_size[0] - 1])
         plt.show()
-    return grid_arr
+
+    # # Plot the HOG graph if visual is true
+    # if visual:
+    #     graph_x = []
+    #     graph_y = []
+    #     graph_u = []
+    #     graph_v = []
+    #     for x in range(0, grid_size[0] - 1):
+    #         for y in range(0, grid_size[1] - 1):
+    #             graph_x += [y + 0.5] * 6
+    #             graph_y += [grid_size[0] - 1 - 1.5 - x] * 6
+    #             for i in range(0, 6):
+    #                 if i == 0:
+    #                     graph_u += [new_grid_arr[x][y][i] * 1]
+    #                     graph_v += [new_grid_arr[x][y][i] * 0]
+    #                 elif i == 1:
+    #                     graph_u += [new_grid_arr[x][y][i] * math.sqrt(3) / 2]
+    #                     graph_v += [new_grid_arr[x][y][i] * 1 / 2]
+    #                 elif i == 2:
+    #                     graph_u += [new_grid_arr[x][y][i] * 1 / 2]
+    #                     graph_v += [new_grid_arr[x][y][i] * math.sqrt(3) / 2]
+    #                 elif i == 3:
+    #                     graph_u += [new_grid_arr[x][y][i] * 0]
+    #                     graph_v += [new_grid_arr[x][y][i] * 1]
+    #                 elif i == 4:
+    #                     graph_u += [new_grid_arr[x][y][i] * -1 / 2]
+    #                     graph_v += [new_grid_arr[x][y][i] * math.sqrt(3) / 2]
+    #                 elif i == 5:
+    #                     graph_u += [new_grid_arr[x][y][i] * -math.sqrt(3) / 2]
+    #                     graph_v += [new_grid_arr[x][y][i] * 1 / 2]
+    #     fig, ax = plt.subplots()
+    #     ax.quiver(graph_x, graph_y,
+    #               graph_u,
+    #               graph_v,
+    #               angles='uv', scale_units='xy', scale=1., headaxislength=0)
+    #     ax.set_xlim([0, grid_size[1] - 1])
+    #     ax.set_ylim([0, grid_size[0] - 1])
+    #     plt.show()
+    return new_grid_arr
 
 
 
 # image = read_image('Q3/1.jpg')
 # arr0 = create_grid_cells(image, 8)
-image = cv2.imread("Q3/3.jpg", cv2.IMREAD_GRAYSCALE)
-arr0 = create_grid_cells(image, 3)
+image = cv2.imread("Q3/2.jpg", cv2.IMREAD_GRAYSCALE)
+arr0 = create_grid_cells(image, 5)
 # transform = transforms.CenterCrop((330, 300))
 # image2 = transform(torch.from_numpy(image)).numpy()
 # cv2.imwrite("test_img.jpg", image2)
