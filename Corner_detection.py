@@ -41,7 +41,6 @@ def create_grid_cells(img, length, visual: bool = True):
 
     angle_arr = np.degrees(np.arctan(gy / gx))
     mag_arr = np.sqrt(gx ** 2 + gy ** 2)
-    # TODO: set threshold for mag
     for x in range(0, grid_size[0]):
         for y in range(0, grid_size[1]):
             for row in range(0 + (length * x), length * (x + 1)):
