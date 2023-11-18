@@ -205,9 +205,9 @@ def create_grid_cells(img, length, visual: bool = True):
         plt.show()
     return new_grid_arr
 
-def compute_eigenvalue(img, window, sigma = 3, visual = True):
+def compute_eigenvalue(img, window = 3, sigma = 1, visual = True):
     # Computing Ix, Ixx, Iy, Iyy
-    blur = cv2.GaussianBlur(img, (window, window), 2)
+    blur = cv2.GaussianBlur(img, (3, 3), 2)
     sobel_x = np.outer([1, 2, 1], [-1, 0, 1])
     sobel_y = np.outer([-1, 0, 1], [1, 2, 1])
     Ix = scipy.signal.convolve2d(blur, sobel_x, mode='same')
@@ -251,14 +251,35 @@ def compute_eigenvalue(img, window, sigma = 3, visual = True):
 
     return lambda1, lambda0
 
+def corner_detection(img, window = 3, sigma = 1, alpha = 0.08, eigen_visual = False, visual = True):
+    l1, l0 = compute_eigenvalue(img, window, sigma, eigen_visual)
+    r = alpha * l0.max()
+    corner_mask = np.zeros((img.shape[0], img.shape[1]))
+    for x in range(0, img.shape[0]):
+        for y in range(0, img.shape[1]):
+            if l1[x][y] > r and l0[x][y] > r:
+                # Mark here is a corner
+                corner_mask[x][y] = 1
+
+    if visual:
+        output = img.copy()
+        output = cv2.cvtColor(output, cv2.COLOR_GRAY2RGB)
+        for x in range(0, img.shape[0]):
+            for y in range(0, img.shape[1]):
+                if corner_mask[x][y] == 1:
+                    output[x][y] = [255, 0, 0]
+        plt.imshow(output)
+        plt.show()
+
+    return corner_mask
 
 
-image = cv2.imread("Q3/uoft1.jpg", cv2.IMREAD_GRAYSCALE)
-# hog = create_grid_cells(image, 5)
-# flattened_array = hog.flatten()
-# flattened_array.tofile('3.txt', sep=' ', format='%s')
-lambda1, lambda0 = compute_eigenvalue(image, 3, 1)
 
-# transform = transforms.CenterCrop((330, 300))
-# image2 = transform(torch.from_numpy(image)).numpy()
-# cv2.imwrite("test_img.jpg", image2)
+
+image = cv2.imread("Q3/uoft2.jpg", cv2.IMREAD_GRAYSCALE)
+hog = create_grid_cells(image, 5)
+flattened_array = hog.flatten()
+flattened_array.tofile('3.txt', sep=' ', format='%s')
+
+# Corner detection
+# corner_mask = corner_detection(image, 3, 50, eigen_visual=True)
