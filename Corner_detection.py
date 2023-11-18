@@ -40,24 +40,11 @@ def create_grid_cells(img, length, visual: bool = True):
     # Find the indices of gx == 0, and set the value of gy to be 0 at the same indices
     idxs = np.where(gx == 0)
     for i in range(0, idxs[0].shape[0]):
+        # Let 90 degree belong to bin 3
         gy[idxs[0][i]][idxs[1][i]] = 3.8
         gx[idxs[0][i]][idxs[1][i]] = 1
 
     angle_arr = np.degrees(np.arctan(gy / gx))
-    # for i in range(0, idxs[0].shape[0]):
-    #     angle_arr[idxs[0][i]][idxs[1][i]] = 90
-
-    # # Calculating the angle of orientation of each pixel in img
-    # gx, gy = gradient(crop_img)
-    # # Find the indices of gx == 0, and set the value of gy to be 0 at the same indices
-    # idxs = np.where(gx == 0)
-    # for i in range(0, idxs[0].shape[0]):
-    #     gy[idxs[0][i]][idxs[1][i]] = 0
-    #     gx[idxs[0][i]][idxs[1][i]] = 1
-    #
-    # angle_arr = np.degrees(np.arctan(gy / gx))
-    # mag_arr = np.sqrt(gx ** 2 + gy ** 2)
-    # mag_arr[mag_arr < threshold] = 0  # Threshold for approach one
 
     for x in range(0, grid_size[0]):
         for y in range(0, grid_size[1]):
@@ -101,10 +88,6 @@ def create_grid_cells(img, length, visual: bool = True):
             l2_norm = math.sqrt((cancat_arr**2).sum() + 0.001)
             # l2_norm = np.linalg.norm(cancat_arr, 2)
             new_grid_arr[x][y] = cancat_arr / l2_norm
-
-    # l2_norm = np.linalg.norm(grid_arr, 2, axis=2)
-    # l2_norm = l2_norm.reshape((grid_size[0], grid_size[1], 1)).repeat(6, axis=2)
-    # grid_arr = grid_arr / l2_norm  # divide l2_norm element-wise
 
     # Plot the HOG graph if visual is true
     if visual:
@@ -276,10 +259,10 @@ def corner_detection(img, window = 3, sigma = 1, alpha = 0.08, eigen_visual = Fa
 
 
 
-image = cv2.imread("Q3/uoft2.jpg", cv2.IMREAD_GRAYSCALE)
+image = cv2.imread("Q3/1.jpg", cv2.IMREAD_GRAYSCALE)
 hog = create_grid_cells(image, 5)
-flattened_array = hog.flatten()
-flattened_array.tofile('3.txt', sep=' ', format='%s')
+# flattened_array = hog.flatten()
+# flattened_array.tofile('cat_house_flash.txt', sep=' ', format='%s')
 
 # Corner detection
 # corner_mask = corner_detection(image, 3, 50, eigen_visual=True)
